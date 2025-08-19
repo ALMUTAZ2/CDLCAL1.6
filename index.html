@@ -1972,79 +1972,101 @@ function calculateMultiTransformerSummary(transformers, totalLoad, balanceScore)
             `;
         }
 
+
+
+
+
+
+
         function displayTransformers(transformers) {
-            const transformersSection = document.getElementById('transformersSection');
-            
-            transformersSection.innerHTML = transformers.map((transformer, index) => {
-                const activeBreakers = transformer.breakers.filter(b => b.meters.length > 0);
-                const transformerUtilization = (transformer.assignedLoad / transformer.type.safeLoad) * 100;
-                const transformerStatus = getTransformerStatus(transformerUtilization);
-                
-                // تمييز المحولات المخصصة
-                const dedicatedIcon = transformer.isDedicated ? '🔥 ' : '🔌 ';
-                const dedicatedLabel = transformer.isDedicated ? ' (مخصص)' : '';
-                const dedicatedStyle = transformer.isDedicated ? 'border: 3px solid #ff6600; background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);' : '';
-                
-                return `
-                    <div class="transformer-section ${transformerStatus.class}" style="${dedicatedStyle}">
-                        <h3>${dedicatedIcon}المحول ${index + 1}: ${transformer.type.name}${dedicatedLabel} ${transformerStatus.indicator}</h3>
-                        ${transformer.isDedicated ? `
-                            <div style="background: #ff6600; color: white; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
-                                🔥 محول مخصص بالكامل للعداد ${transformer.dedicatedFor} - يستخدم القاطع الرئيسي فقط
-                            </div>
-                        ` : ''}
-                        <div style="margin-bottom: 15px;">
-                            <strong>الحمل الإجمالي:</strong> ${transformer.assignedLoad.toFixed(1)}A / ${transformer.type.safeLoad}A (حد 80%)
-                            <br>
-                            <strong>نسبة الاستخدام:</strong> ${transformerUtilization.toFixed(1)}% ${transformerUtilization > 100 ? '⚠️ تجاوز الحد المسموح' : '✅ ضمن الحد الآمن'}
-                            <br>
-                            <strong>القواطع المستخدمة:</strong> ${activeBreakers.length} من ${transformer.type.breakers}
-                            ${transformer.isDedicated ? '<br><strong>نوع المحول:</strong> مخصص للعدادات الكبيرة' : `<br><strong>مؤشر التوازن:</strong> ${getBalanceIndicator(activeBreakers)}`}
-                        </div>
-                        ${transformerUtilization > 100 ? `
-                            <div class="transformer-overload-warning">
-                                ⚠️ تحذير: هذا المحول يعمل بأكثر من 100% من طاقته الآمنة!
-                            </div>
-                        ` : ''}
-                        <div class="breaker-grid">
-                            ${activeBreakers.map(breaker => `
-                                <div class="breaker-card" style="${breaker.dedicated ? 'border: 2px solid #ff6600; background: #fff8f0;' : ''}">
-                                    <h4>⚡ القاطع ${breaker.number} ${breaker.dedicated ? '<span style="background: #ff6600; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">مخصص</span>' : getBalanceLabel(breaker.utilizationPercent)}</h4>
-                                    <div><strong>الحمل:</strong> ${breaker.load.toFixed(1)}A / 310A</div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill ${getProgressClass(breaker.utilizationPercent)}" 
-                                             style="width: ${Math.min((breaker.load / 310) * 100, 100)}%"></div>
-                                    </div>
-                                    <div><strong>نسبة الاستخدام:</strong> ${((breaker.load / 310) * 100).toFixed(1)}%</div>
-                                    <div><strong>عدد العدادات:</strong> ${breaker.meters.length}</div>
-                                    ${breaker.dedicated ? 
-                                        `<div><strong>نوع القاطع:</strong> ${breaker.status}</div>` :
-                                        `<div><strong>تنوع الأحمال:</strong> ${breaker.categories.size} فئات، ${breaker.timePatterns.size} أنماط</div>`
-                                    }
-                                    <div style="margin-top: 10px;">
-                                        ${generateMeterDetailsHTML(breaker)}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+    const transformersSection = document.getElementById('transformersSection');
+    
+    transformersSection.innerHTML = transformers.map((transformer, index) => {
+        const activeBreakers = transformer.breakers.filter(b => b.meters.length > 0);
         
+        // ✅ تغيير الحساب: النسبة من الحد الأقصى الفعلي بدلاً من safeLoad
+        const transformerUtilization = (transformer.assignedLoad / transformer.type.maxCurrent) * 100;
+        
+        const transformerStatus = getTransformerStatus(transformerUtilization);
+        
+        // تحديد أيقونة التخصيص
+        const dedicatedIcon = transformer.isDedicated ? '🔥 ' : '🔌 ';
+        const dedicatedLabel = transformer.isDedicated ? ' (مخصص)' : '';
+        const dedicatedStyle = transformer.isDedicated ? 'border: 3px solid #ff6600; background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);' : '';
+        
+        return `
+            <div class="transformer-section ${transformerStatus.class}" style="${dedicatedStyle}">
+                <h3>${dedicatedIcon}المحول ${index + 1}: ${transformer.type.name}${dedicatedLabel} ${transformerStatus.indicator}</h3>
+                ${transformer.isDedicated ? `
+                    <div style="background: #ff6600; color: white; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
+                        🔥 محول مخصص بالكامل للعداد ${transformer.dedicatedFor} - يستخدم القاطع الرئيسي فقط
+                    </div>
+                ` : ''}
+                <div style="margin-bottom: 15px;">
+                    <strong>الحمل الإجمالي:</strong> ${transformer.assignedLoad.toFixed(1)}A / ${transformer.type.maxCurrent}A
+                    <br>
+                    <strong>نسبة الاستخدام:</strong> ${transformerUtilization.toFixed(1)}% ${transformerUtilization > 80 ? '⚠️ يتجاوز الحد الآمن (80%)' : '✅ ضمن الحد الآمن'}
+                    <br>
+                    <strong>القواطع المستخدمة:</strong> ${activeBreakers.length} من ${transformer.type.breakers}
+                    ${transformer.isDedicated ? '<br><strong>نوع المحول:</strong> مخصص للعدادات الكبيرة' : `<br><strong>مؤشر التوازن:</strong> ${getBalanceIndicator(activeBreakers)}`}
+                </div>
+                ${transformerUtilization > 80 ? `
+                    <div class="transformer-overload-warning">
+                        ⚠️ تحذير: هذا المحول يعمل بأكثر من الحد الآمن المُوصى به (80%)!
+                    </div>
+                ` : ''}
+                <div class="breaker-grid">
+                    ${activeBreakers.map(breaker => `
+                        <div class="breaker-card" style="${breaker.dedicated ? 'border: 2px solid #ff6600; background: #fff8f0;' : ''}">
+                            <h4>⚡ القاطع ${breaker.number} ${breaker.dedicated ? '<span style="background: #ff6600; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">مخصص</span>' : getBalanceLabel(breaker.utilizationPercent)}</h4>
+                            <div><strong>الحمل:</strong> ${breaker.load.toFixed(1)}A / 310A</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${getProgressClass(breaker.utilizationPercent)}" 
+                                     style="width: ${Math.min((breaker.load / 310) * 100, 100)}%"></div>
+                            </div>
+                            <div><strong>نسبة الاستخدام:</strong> ${((breaker.load / 310) * 100).toFixed(1)}%</div>
+                            <div><strong>عدد العدادات:</strong> ${breaker.meters.length}</div>
+                            ${breaker.dedicated ? 
+                                `<div><strong>نوع القاطع:</strong> ${breaker.status}</div>` :
+                                `<div><strong>تنوع الأحمال:</strong> ${breaker.categories.size} فئات، ${breaker.timePatterns.size} أنماط</div>`
+                            }
+                            <div style="margin-top: 10px;">
+                                ${generateMeterDetailsHTML(breaker)}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+
+
+
         function getTransformerStatus(utilization) {
-            if (utilization <= 70) {
-                return { class: 'transformer-safe', indicator: '<span class="balance-indicator balance-excellent">ممتاز</span>' };
-            } else if (utilization <= 85) {
-                return { class: 'transformer-safe', indicator: '<span class="balance-indicator balance-good">جيد</span>' };
-            } else if (utilization <= 95) {
-                return { class: 'transformer-warning', indicator: '<span class="balance-indicator balance-fair">تحذير</span>' };
-            } else if (utilization <= 100) {
-                return { class: 'transformer-warning', indicator: '<span class="balance-indicator balance-good">حد أقصى آمن</span>' };
-            } else {
-                return { class: 'transformer-danger', indicator: '<span class="balance-indicator balance-poor">خطر - تجاوز الحد</span>' };
-            }
-        }
+    // النسبة الآن من الحد الأقصى الفعلي (maxCurrent)
+    if (utilization <= 60) {
+        return { class: 'transformer-safe', indicator: '<span class="balance-indicator balance-excellent">ممتاز</span>' };
+    } else if (utilization <= 70) {
+        return { class: 'transformer-safe', indicator: '<span class="balance-indicator balance-good">جيد</span>' };
+    } else if (utilization <= 80) {
+        return { class: 'transformer-safe', indicator: '<span class="balance-indicator balance-good">حد آمن</span>' };
+    } else if (utilization <= 90) {
+        return { class: 'transformer-warning', indicator: '<span class="balance-indicator balance-fair">تحذير</span>' };
+    } else if (utilization <= 100) {
+        return { class: 'transformer-warning', indicator: '<span class="balance-indicator balance-poor">حد أقصى</span>' };
+    } else {
+        return { class: 'transformer-danger', indicator: '<span class="balance-indicator balance-poor">خطر - تجاوز الحد الأقصى</span>' };
+    }
+}
+
+        
+        
+        
+        
+        
+        
 
         function getBalanceIndicator(breakers) {
             const utilizationValues = breakers.map(b => b.utilizationPercent);
