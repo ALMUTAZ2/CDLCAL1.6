@@ -1832,7 +1832,20 @@
             // حساب إجمالي الحمل بـ KVA
             const totalLoadKVA = (summary.totalLoad * 0.4 * 1.73).toFixed(1);
             
-            // التحقق من وجود transformers والحصوfunction calculateMultiTransformerSummary(transformers, totalLoad, balanceScore) {
+            // التحقق من وجود transformers والحصو
+            
+            let transformerDisplay = '';
+            let transformerDetails = '';
+            
+            if (distributionResults && distributionResults.transformers && distributionResults.transformers.length > 0) {
+                // تجميع المحولات حسب السعة
+                const transformerCapacities = {};
+                distributionResults.transformers.forEach(transformer => {
+                    const capacity = transformer.type.capacity;
+                    if (transformerCapacities[capacity]) {
+                        transformerCapacities[capacity]++;
+                    } else {
+                        trfunction calculateMultiTransformerSummary(transformers, totalLoad, balanceScore) {
     let totalBreakers = 0;
     let totalMeters = 0;
     let overloadedBreakers = 0;
@@ -1842,21 +1855,16 @@
     let totalUtilization = 0;
     let utilizationCount = 0;
 
-    // ✅ حساب العدادات من الجدول المضاف مباشرة
-    const meterTableRows = document.querySelectorAll('#meterList tbody tr');
-    meterTableRows.forEach(row => {
-        const countCell = row.querySelector('td:nth-child(2)'); // العمود الثاني (العدد)
-        if (countCell && countCell.textContent.trim() !== '') {
-            totalMeters += parseInt(countCell.textContent) || 0;
-        }
-    });
+    // ✅ حساب العدادات من المتغير meters مباشرة
+    if (meters && meters.length > 0) {
+        totalMeters = meters.reduce((sum, meter) => sum + meter.count, 0);
+    }
 
     transformers.forEach(transformer => {
         const activeBreakers = transformer.breakers.filter(b => b.meters.length > 0);
         totalBreakers += activeBreakers.length;
         
         activeBreakers.forEach(breaker => {
-            // ❌ لا نحسب العدادات هنا - نأخذها من الجدول فقط
             if (breaker.utilizationPercent > 100) {
                 overloadedBreakers++;
             }
@@ -1878,7 +1886,7 @@
     return {
         totalTransformers: transformers.length,
         totalBreakers,
-        totalMeters, // ✅ العدد الصحيح من الجدول
+        totalMeters, // ✅ العدد الصحيح من متغير meters
         totalLoad: totalLoad.toFixed(1),
         overloadedBreakers,
         overloadedTransformers,
@@ -1889,19 +1897,7 @@
         efficiency: calculateOverallEfficiency(transformers).toFixed(1)
     };
 }
-ل على بيانات المحولات
-            let transformerDisplay = '';
-            let transformerDetails = '';
-            
-            if (distributionResults && distributionResults.transformers && distributionResults.transformers.length > 0) {
-                // تجميع المحولات حسب السعة
-                const transformerCapacities = {};
-                distributionResults.transformers.forEach(transformer => {
-                    const capacity = transformer.type.capacity;
-                    if (transformerCapacities[capacity]) {
-                        transformerCapacities[capacity]++;
-                    } else {
-                        transformerCapacities[capacity] = 1;
+ansformerCapacities[capacity] = 1;
                     }
                 });
                 
